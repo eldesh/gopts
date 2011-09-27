@@ -1,0 +1,10 @@
+*.ncb
+*.obj
+*.exe
+*.pdb
+*.dep
+*.idb
+Debug/
+Release/
+*.o
+*.a
