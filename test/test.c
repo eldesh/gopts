@@ -120,7 +120,7 @@ bool test_load_option_if_exist(void) {
 							   , "--fg24hij=true", "--kl_n0qr=false" , "--stuvw=true"
 							   , "--xyz");
 	int n;
-	char str[64];
+	char * str = (char*)malloc(64);
 	bool b;
 //	print_strs(10, argv);
 	TEST(load_option_if_exist(&n, 10, argv, "a"));
@@ -135,15 +135,16 @@ bool test_load_option_if_exist(void) {
 	TEST(b==false);
 	TEST(load_option_if_exist_bool(&b, 10, argv, "stuvw"  ));
 	TEST(b==true);
-	TEST(load_option_if_exist_string(str, 10, argv, "in"    ));
+	TEST(load_option_if_exist_string(&str, 10, argv, "in"    ));
 	TEST(!strcmp(str, "cde.conf"));
-	TEST(load_option_if_exist_string(str, 10, argv, "output"));
+	TEST(load_option_if_exist_string(&str, 10, argv, "output"));
 	TEST(!strcmp(str, "def.out"));
-	TEST(load_option_if_exist_string(str, 10, argv, "efg"   ));
+	TEST(load_option_if_exist_string(&str, 10, argv, "efg"   ));
 	TEST(!strcmp(str, "debug.log"));
 	// this can't be used for options which don't take values
 	//TEST(load_option_if_exist_???(<???>, 10, argv, "xyz"));
 	free_strs(10, (char**)argv);
+	free(str);
 	return true;
 }
 
@@ -254,7 +255,7 @@ bool test_int_parse(void) {
 bool test_parse_options(void) {
 	int av, bv, cv, dv, ev, fv, gv, hv, iv;
 	bool jv=false, kv=false, bar=false;
-	char str[64];
+	char * str = (char*)malloc(64);
 	char const * const argv[  ] = {"--a=10"   , "--b=0"   , "--c=20"  , "--d=0x0"
 		             , "--e=0x1"  , "--f=0x10", "--g=0xff", "--h=0xffff"
 					 , "--i=0x256", "--j"
@@ -275,7 +276,7 @@ bool test_parse_options(void) {
 		make_spec_int("i", &iv,
 		make_spec_novalue("j"  , &jv,
 		make_spec_bool   ("k"  , &kv,
-		make_spec_string ("str", str,
+		make_spec_string ("str", &str,
 		make_spec_novalue("bar", &bar, NULL)))))))))))));
 
 	parse_options(size, argv, ss);
@@ -295,13 +296,14 @@ bool test_parse_options(void) {
 	TEST(bar);
 
 	free_option_specs(ss);
+	free(str);
 	return true;
 }
 
 bool test_parse_separate_options(void) {
 	int av, bv, cv, dv, ev, fv, gv, hv, iv;
 	bool jv=false, kv=false, bar=false;
-	char str[64];
+	char * str = (char*)malloc(64);
 	char const * const argv[  ] = {"--a=10"   , "--b=0"   , "--c=20"  , "--d=0x0"
 		             , "--e=0x1"  , "--f=0x10", "--g=0xff", "--h=0xffff"
 					 , "--i=0x256", "--j"
@@ -324,7 +326,7 @@ bool test_parse_separate_options(void) {
 	option_spec * aa_je =
 		make_spec_novalue("j"  , &jv,
 		make_spec_bool   ("k"  , &kv,
-		make_spec_string ("str", str,
+		make_spec_string ("str", &str,
 		make_spec_novalue("bar", &bar, NULL))));
 
 	option_spec * ss_all = append_option_spec(ss_ae,
@@ -347,6 +349,7 @@ bool test_parse_separate_options(void) {
 	TEST(bar);
 
 	free_option_specs(ss_ae);
+	free(str);
 	return true;
 }
 

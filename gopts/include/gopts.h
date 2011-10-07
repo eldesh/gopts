@@ -5,8 +5,8 @@
 #include <bool.h>
 #include <parser.h>
 
-// function type, copy from 'src' to 'dst' and return dst
-typedef void * (*copy_type)(void * dst, void const * src);
+// function type, move from 'src' to 'dst' and return dst
+typedef void * (*move_type)(void * dst, void       * src);
 
 // function type
 //  that parse the given string and construct a (boxed)value
@@ -22,14 +22,14 @@ typedef
 option_spec_type;
 
 option_spec * make_option_spec(char const * name, void * addr, option_spec_type type
-							   , parser_type parser, copy_type copyer, option_spec * tl);
+							   , parser_type parser, move_type mover, option_spec * tl);
 void free_option_specs(option_spec * ss);
 option_spec * append_option_spec(option_spec * xs, option_spec * ys);
 
-option_spec * make_spec_int    (char const * name, int  * addr, option_spec * ss);
-option_spec * make_spec_bool   (char const * name, bool * addr, option_spec * ss);
-option_spec * make_spec_string (char const * name, char * addr, option_spec * ss);
-option_spec * make_spec_novalue(char const * name, bool * addr, option_spec * ss);
+option_spec * make_spec_int    (char const * name, int   * addr, option_spec * ss);
+option_spec * make_spec_bool   (char const * name, bool  * addr, option_spec * ss);
+option_spec * make_spec_string (char const * name, char ** addr, option_spec * ss);
+option_spec * make_spec_novalue(char const * name, bool  * addr, option_spec * ss);
 
 void parse_options(int argc, char const * const * argv, option_spec * ss);
 
@@ -51,13 +51,13 @@ bool has_novalue_option(int argc, char const * const * argv, char const * opt);
 //   abbr : name(abbreviation) of option
 //
 
-// it takes the parser and the copy function for a parsed value.
-bool load_option_if_exist_generic(copy_type copy
-							   , void * dst, int argc, char const * const * argv, char const * abbr, parser_type parser);
+// takes the parser and the move function for a parsed value.
+bool load_option_if_exist_generic(move_type move
+							   , void  * dst, int argc, char const * const * argv, char const * abbr, parser_type parser);
 // load_option_if_exist_genericis is specialized to each types
-bool load_option_if_exist_bool  (bool * dst, int argc, char const * const * argv, char const * abbr);
-bool load_option_if_exist_int   (int  * dst, int argc, char const * const * argv, char const * abbr);
-bool load_option_if_exist_string(char * dst, int argc, char const * const * argv, char const * abbr);
+bool load_option_if_exist_bool  (bool  * dst, int argc, char const * const * argv, char const * abbr);
+bool load_option_if_exist_int   (int   * dst, int argc, char const * const * argv, char const * abbr);
+bool load_option_if_exist_string(char ** dst, int argc, char const * const * argv, char const * abbr);
 // same the int specialized version
 bool load_option_if_exist       (int  * dst, int argc, char const * const * argv, char const * abbr);
 ////

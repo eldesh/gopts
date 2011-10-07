@@ -15,7 +15,7 @@ struct option_spec_	{
 	void       * value;
 	option_spec_type type;
 	parser_type parser;	// input string parser of value of type of option
-	copy_type  copyer;	// copy parsed value correspond to type
+	move_type  mover;   // move parsed value correspond to type
 	struct option_spec_ * next;	// singly linked list
 };
 
@@ -23,10 +23,11 @@ struct option_spec_	{
 static char const * find_option(int argc, char const * const * argv, char const * opt);
 static int abbr_to_optname(char * buff, char const * abbr);
 
-// copy_type
-static void * copy_bool  (void * dsc, void const * src);
-static void * copy_int   (void * dsc, void const * src);
-static void * copy_string(void * dsc, void const * src);
+// move_type
+static void * move_bool  (void * dsc, void * src);
+static void * move_int   (void * dsc, void * src);
+static void * move_string(void * dsc, void * src);
+
 
 static bool is_not_space(char c);
 static char const * skip_space(char const * str);
@@ -35,7 +36,8 @@ static char const * skip_space(char const * str);
 
 option_spec * make_option_spec(char const * name, void * addr
 							   , option_spec_type type
-							   , parser_type parser, copy_type copyer
+							   , parser_type parser
+							   , move_type mover
 							   , option_spec * tl)
 {
 	option_spec * spec=(option_spec*)calloc(1, sizeof(option_spec));
@@ -45,7 +47,7 @@ option_spec * make_option_spec(char const * name, void * addr
 	spec->value         = addr;
 	spec->type          = type;
 	spec->parser        = parser;
-	spec->copyer        = copyer;
+	spec->mover         = mover;
 	spec->next          = tl;
 	return spec;
 }
@@ -54,7 +56,7 @@ void free_option_spec(option_spec * s) {
 		s->name         =NULL;
 		s->value        =NULL;
 		s->parser       =NULL;
-		s->copyer       =NULL;
+		s->mover        =NULL;
 		free(s);
 	}
 }
@@ -86,16 +88,16 @@ option_spec * next_option(option_spec const * s) {
 
 
 option_spec * make_spec_int   (char const * name, int  * addr, option_spec * ss) {
-	return make_option_spec(name, (void*)addr, GOPT_SPEC_HAS_VALUE, parse_int, copy_int, ss);
+	return make_option_spec(name, (void*)addr, GOPT_SPEC_HAS_VALUE, parse_int, move_int, ss);
 }
 option_spec * make_spec_bool  (char const * name, bool * addr, option_spec * ss) {
-	return make_option_spec(name, (void*)addr, GOPT_SPEC_HAS_VALUE, parse_bool, copy_bool, ss);
+	return make_option_spec(name, (void*)addr, GOPT_SPEC_HAS_VALUE, parse_bool, move_bool, ss);
 }
-option_spec * make_spec_string(char const * name, char * addr, option_spec * ss) {
-	return make_option_spec(name, (void*)addr, GOPT_SPEC_HAS_VALUE, success_parser, copy_string, ss);
+option_spec * make_spec_string(char const * name, char ** addr, option_spec * ss) {
+	return make_option_spec(name, (void*)addr, GOPT_SPEC_HAS_VALUE, success_parser, move_string, ss);
 }
 option_spec * make_spec_novalue(char const * name, bool * addr, option_spec * ss) {
-	return make_option_spec(name, (void*)addr, GOPT_SPEC_HAS_NO_VALUE, parse_bool, copy_bool, ss);
+	return make_option_spec(name, (void*)addr, GOPT_SPEC_HAS_NO_VALUE, parse_bool, move_bool, ss);
 }
 
 // parse option strings specified by spec.
@@ -103,15 +105,15 @@ static void parse_option(int argc, char const * const * argv, option_spec * ospe
 	assert(ospec);
 	if (ospec->type==GOPT_SPEC_HAS_VALUE) {
 		if (ospec->value)
-			load_option_if_exist_generic(ospec->copyer, ospec->value, argc, argv, ospec->name, ospec->parser);
+			load_option_if_exist_generic(ospec->mover, ospec->value, argc, argv, ospec->name, ospec->parser);
 		else
 			ospec->value = read_option_generic(argc, argv, ospec->name, ospec->parser);
 	} else if (ospec->type==GOPT_SPEC_HAS_NO_VALUE) {
-		bool has=has_novalue_option(argc, argv, ospec->name);
-		if (ospec->value)
-			ospec->copyer(ospec->value, &has);
+		bool * has=make_bool(has_novalue_option(argc, argv, ospec->name));
+		if (ospec->value) // specifed load address
+			ospec->mover(ospec->value, has);
 		else
-			ospec->value = make_bool(has);
+			ospec->value = has;
 	}
 }
 
@@ -181,53 +183,67 @@ bool * read_option_bool(int argc, char const * const * argv, char const * abbr) 
 	return read_option_generic(argc, argv, abbr, parse_bool);
 }
 
+static void * unwrap_ptr_ptr (void ** ptr) {
+	if (ptr) {
+		free(ptr);
+		return *ptr;
+	}
+	return NULL;
+}
 char * read_option_string(int argc, char const * const * argv, char const * abbr) {
-	return read_option_generic(argc, argv, abbr, success_parser);
+	return unwrap_ptr_ptr(read_option_generic(argc, argv, abbr, success_parser));
 }
 
 int * read_option(int argc, char const * const * argv, char const * abbr) {
 	return read_option_int(argc, argv, abbr); // default is `int`
 }
 
-static void * copy_bool(void * dsc, void const * src) {
-	(*(bool*)dsc)=*(bool*)src;
-	return dsc;
+/// mover
+static void * move_bool(void * dst, void * src) {
+	(*(bool*)dst)=*(bool*)src;
+	free(src);
+	return dst;
 }
-static void * copy_int(void * dsc, void const * src) {
-	(*(int*)dsc)=*(int*)src;
-	return dsc;
+static void * move_int(void * dst, void * src) {
+	(*(int*)dst)=*(int*)src;
+	free(src);
+	return dst;
 }
-static void * copy_string(void * dsc, void const * src) {
-	return strcpy((char*)dsc, (char const*)src);
+static void * move_string(void * dst, void * src) {
+	char ** dst_ = (char**)dst;
+	char ** src_ = (char**)src;
+	*dst_ = *src_;
+	free(src_);
+	return dst_;
 }
+
 
 // if option is specified with "abbr", write the value to des.
 bool load_option_if_exist(int * des, int argc, char const * const * argv, char const * abbr) {
 	return load_option_if_exist_int(des, argc, argv, abbr);
 }
 
-bool load_option_if_exist_generic(copy_type copy
+bool load_option_if_exist_generic(move_type move
 				, void * dst, int argc, char const * const * argv, char const * abbr, parser_type parser) {
 	void * v=read_option_generic(argc, argv, abbr, parser);
 	if (v) {
 		if (dst)
-			copy(dst, v);
-		free(v);
+			move(dst, v);
 		return true;
 	} else
 		return false;
 }
 
 bool load_option_if_exist_bool(bool * dst, int argc, char const * const * argv, char const * abbr) {
-	return load_option_if_exist_generic(copy_bool
+	return load_option_if_exist_generic(move_bool
 		, (void*)dst, argc, argv, abbr, parse_bool);
 }
 bool load_option_if_exist_int (int * dst, int argc, char const * const * argv, char const * abbr) {
-	return load_option_if_exist_generic(copy_int
+	return load_option_if_exist_generic(move_int
 		, (void*)dst, argc, argv, abbr, parse_int);
 }
-bool load_option_if_exist_string(char * dst, int argc, char const * const * argv, char const * abbr) {
-	return load_option_if_exist_generic((copy_type)strcpy
+bool load_option_if_exist_string(char ** dst, int argc, char const * const * argv, char const * abbr) {
+	return load_option_if_exist_generic(move_string
 		, (void*)dst, argc, argv, abbr, success_parser);
 }
 

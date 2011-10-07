@@ -77,9 +77,15 @@ static char const * last_char(char const * str) {
 		++str;
 	return str;
 }
+static void ** make_ptr(void * p) {
+	void ** vp = (void**)malloc(sizeof(p));
+	assert(vp);
+	*vp = p;
+	return vp;
+}
 
 parse_result success_parser(char const * str) {
-	return make_parse_result(string_dup(str), last_char(str));
+	return make_parse_result(make_ptr(string_dup(str)), last_char(str));
 }
 
 parse_result parse_int_dec(char const * str) {
