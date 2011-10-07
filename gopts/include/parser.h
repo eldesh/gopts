@@ -25,10 +25,10 @@ int * make_int (int x);
 bool * make_bool(bool b);
 
 parse_result success_parser(char const * str);
-parse_result parse_int_dec(char const * str);
-parse_result parse_int_hex(char const * str);
-parse_result parse_int(char const * str);
-parse_result parse_bool(char const * str);
+parse_result parse_int_dec (char const * str);
+parse_result parse_int_hex (char const * str);
+parse_result parse_int     (char const * str);
+parse_result parse_bool    (char const * str);
 parse_result parse_ipv4addr(char const * str);
 
 #endif    /* PARSER_INCLUDED */

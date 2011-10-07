@@ -59,7 +59,7 @@ bool load_option_if_exist_bool  (bool  * dst, int argc, char const * const * arg
 bool load_option_if_exist_int   (int   * dst, int argc, char const * const * argv, char const * abbr);
 bool load_option_if_exist_string(char ** dst, int argc, char const * const * argv, char const * abbr);
 // same the int specialized version
-bool load_option_if_exist       (int  * dst, int argc, char const * const * argv, char const * abbr);
+bool load_option_if_exist       (int   * dst, int argc, char const * const * argv, char const * abbr);
 ////
 
 ////
