@@ -130,7 +130,7 @@ parse_result parse_bool(char const * str) {
 	if (!strcmp(str, "true") ) r=make_bool(true);
 	if (!strcmp(str, "false")) r=make_bool(false);
 
-	// ‰ö‚µ‚°‚¾‚¯‚Çˆê‰c
+	// although it is doubtful ...
 	if (!strcmp(str, "1")) r=make_bool(true);
 	if (!strcmp(str, "0")) r=make_bool(false);
 
@@ -160,3 +160,21 @@ parse_result parse_ipv4addr(char const * str) {
 	} else
 		return make_parse_result(NULL, str);
 }
+
+parse_result parse_read_file (char const * str) {
+	FILE * fp=fopen(str, "r");
+	if (fp)
+		return make_parse_result(make_ptr(fp), last_char(str));
+	else
+		return make_parse_result(NULL, str);
+}
+
+parse_result parse_write_file (char const * str) {
+	FILE * fp=fopen(str, "w");
+	if (fp)
+		return make_parse_result(make_ptr(fp), last_char(str));
+	else
+		return make_parse_result(NULL, str);
+}
+
+

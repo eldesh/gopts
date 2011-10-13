@@ -24,9 +24,9 @@ static char const * find_option(int argc, char const * const * argv, char const 
 static int abbr_to_optname(char * buff, char const * abbr);
 
 // move_type
-static void * move_bool  (void * dsc, void * src);
-static void * move_int   (void * dsc, void * src);
-static void * move_string(void * dsc, void * src);
+static void * move_bool(void * dsc, void * src);
+static void * move_int (void * dsc, void * src);
+static void * move_ptr (void * dsc, void * src);
 
 
 static bool is_not_space(char c);
@@ -94,7 +94,7 @@ option_spec * make_spec_bool  (char const * name, bool * addr, option_spec * ss)
 	return make_option_spec(name, (void*)addr, GOPT_SPEC_HAS_VALUE, parse_bool, move_bool, ss);
 }
 option_spec * make_spec_string(char const * name, char ** addr, option_spec * ss) {
-	return make_option_spec(name, (void*)addr, GOPT_SPEC_HAS_VALUE, success_parser, move_string, ss);
+	return make_option_spec(name, (void*)addr, GOPT_SPEC_HAS_VALUE, success_parser, move_ptr, ss);
 }
 option_spec * make_spec_novalue(char const * name, bool * addr, option_spec * ss) {
 	return make_option_spec(name, (void*)addr, GOPT_SPEC_HAS_NO_VALUE, parse_bool, move_bool, ss);
@@ -185,13 +185,20 @@ bool * read_option_bool(int argc, char const * const * argv, char const * abbr) 
 
 static void * unwrap_ptr_ptr (void ** ptr) {
 	if (ptr) {
+		void * p = *ptr;
 		free(ptr);
-		return *ptr;
+		return p;
 	}
 	return NULL;
 }
 char * read_option_string(int argc, char const * const * argv, char const * abbr) {
 	return unwrap_ptr_ptr(read_option_generic(argc, argv, abbr, success_parser));
+}
+FILE * read_option_read_file(int argc, char const * const * argv, char const * abbr) {
+	return unwrap_ptr_ptr(read_option_generic(argc, argv, abbr, parse_read_file));
+}
+FILE * read_option_write_file(int argc, char const * const * argv, char const * abbr) {
+	return unwrap_ptr_ptr(read_option_generic(argc, argv, abbr, parse_write_file));
 }
 
 int * read_option(int argc, char const * const * argv, char const * abbr) {
@@ -209,14 +216,14 @@ static void * move_int(void * dst, void * src) {
 	free(src);
 	return dst;
 }
-static void * move_string(void * dst, void * src) {
-	char ** dst_ = (char**)dst;
-	char ** src_ = (char**)src;
+
+static void * move_ptr(void * dst, void * src) {
+	void ** dst_ = (void**)dst;
+	void ** src_ = (void**)src;
 	*dst_ = *src_;
 	free(src_);
 	return dst_;
 }
-
 
 // if option is specified with "abbr", write the value to des.
 bool load_option_if_exist(int * des, int argc, char const * const * argv, char const * abbr) {
@@ -242,10 +249,20 @@ bool load_option_if_exist_int (int * dst, int argc, char const * const * argv, c
 	return load_option_if_exist_generic(move_int
 		, (void*)dst, argc, argv, abbr, parse_int);
 }
+
+#define LOAD_OPTION_IF_EXIST_PTR_TYPE(parser) \
+	load_option_if_exist_generic(move_ptr , (void*)dst, argc, argv, abbr, parser)
+
 bool load_option_if_exist_string(char ** dst, int argc, char const * const * argv, char const * abbr) {
-	return load_option_if_exist_generic(move_string
-		, (void*)dst, argc, argv, abbr, success_parser);
+	return LOAD_OPTION_IF_EXIST_PTR_TYPE(success_parser);
 }
+bool load_option_if_exist_read_file(FILE ** dst, int argc, char const * const * argv, char const * abbr) {
+	return LOAD_OPTION_IF_EXIST_PTR_TYPE(parse_read_file);
+}
+bool load_option_if_exist_write_file(FILE ** dst, int argc, char const * const * argv, char const * abbr) {
+	return LOAD_OPTION_IF_EXIST_PTR_TYPE(parse_write_file);
+}
+#undef LOAD_OPTION_IF_EXIST_PTR_TYPE
 
 static bool is_not_space(char c) {
 	return !isspace((int)c);

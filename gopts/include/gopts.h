@@ -6,12 +6,15 @@
 #include <parser.h>
 
 // function type, move from 'src' to 'dst' and return dst
-typedef void * (*move_type)(void * dst, void       * src);
+typedef void * (*move_type)(void * dst, void * src);
 
 // function type
-//  that parse the given string and construct a (boxed)value
-//  and return it's address.
-// return NULL if parse or ctor fail.
+//  that parse the given string and construct a `boxed type` value
+// return pair of a parsed value and rest of input string
+//
+// NOTE:
+//   when 'pointer to type T' is constructed(parsed),
+//   then parse_result should have a result as a 'pointer to pointer to type T'
 typedef parse_result (*parser_type)(char const*);
 
 struct option_spec_;
@@ -60,6 +63,10 @@ bool load_option_if_exist_int   (int   * dst, int argc, char const * const * arg
 bool load_option_if_exist_string(char ** dst, int argc, char const * const * argv, char const * abbr);
 // same the int specialized version
 bool load_option_if_exist       (int   * dst, int argc, char const * const * argv, char const * abbr);
+bool load_option_if_exist_read_file
+                                (FILE ** dst, int argc, char const * const * argv, char const * abbr);
+bool load_option_if_exist_write_file
+                                (FILE ** dst, int argc, char const * const * argv, char const * abbr);
 ////
 
 ////
@@ -81,6 +88,8 @@ bool * read_option_bool  (int argc, char const * const * argv, char const * abbr
 char * read_option_string(int argc, char const * const * argv, char const * abbr);
 // same the int specialized version
 int  * read_option       (int argc, char const * const * argv, char const * abbr);
+FILE * read_option_read_file (int argc, char const * const * argv, char const * abbr);
+FILE * read_option_write_file(int argc, char const * const * argv, char const * abbr);
 ////
 
 bool always_valid(char const * dummy);

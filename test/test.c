@@ -58,6 +58,19 @@ bool test_read_option(void) {
 	TEST(!strcmp("cde.conf" , read_option_string(10, argv, "in"    )));
 	TEST(!strcmp("def.out"  , read_option_string(10, argv, "output")));
 	TEST(!strcmp("debug.log", read_option_string(10, argv, "efg"   )));
+
+	{
+		FILE * rf = read_option_read_file (10, argv, "in"    );
+		FILE * wf = read_option_write_file(10, argv, "output");
+		char buff[64];
+		fprintf(wf, "output");
+		fscanf(rf, "%s", buff);
+		TEST(!strcmp(buff, "cde.conf"));
+		TEST(!read_option_read_file(10, argv, "efg")); // no such file
+		fclose(rf);
+		fclose(wf);
+	}
+
 	// This string is specified, but it is not found, because parsing empty string must fail.
 	TEST(has_option(10, argv, "xyz"));
 	TEST(!read_option_int   (10, argv, "xyz"));
@@ -141,6 +154,24 @@ bool test_load_option_if_exist(void) {
 	TEST(!strcmp(str, "def.out"));
 	TEST(load_option_if_exist_string(&str, 10, argv, "efg"   ));
 	TEST(!strcmp(str, "debug.log"));
+	/// read file
+	{
+		FILE * rf = NULL;
+		FILE * wf = NULL;
+		char buff[64];
+		TEST( load_option_if_exist_read_file (&rf, 10, argv, "in"    ));
+		TEST(rf);
+		TEST( load_option_if_exist_write_file(&wf, 10, argv, "output"));
+		TEST(wf);
+		TEST(!load_option_if_exist_read_file (NULL, 10, argv, "efg"   ));
+
+		fprintf(wf, "output");
+		fscanf(rf, "%s", buff); TEST(!strcmp(buff, "cde.conf"));
+
+		fclose(rf);
+		fclose(wf);
+	}
+
 	// this can't be used for options which don't take values
 	//TEST(load_option_if_exist_???(<???>, 10, argv, "xyz"));
 	free_strs(10, (char**)argv);
